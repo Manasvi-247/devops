@@ -50,7 +50,6 @@ tasks were run on Docker Desktop on my Mac. Where the platform changed a result,
 `--network host` behaving differently on Docker Desktop, I have said so in that section rather than
 pretending the output matched.
 
-My public IP is masked as `49.200.xxx.xxx` in the networking output.
+My public IP is redacted in the one screenshot where it appeared.
 
-The terminal screenshots are rendered from the output files I captured while running each command,
-so the text in them is the actual output of those runs.
+All the screenshots are real captures from my own terminal and browser while running each task.

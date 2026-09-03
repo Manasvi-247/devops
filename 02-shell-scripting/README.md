@@ -98,26 +98,30 @@ $ ./system_info.sh
 ==============================
      SYSTEM INFORMATION
 ==============================
-Date      : Wed Sep  2 14:23:11 UTC 2026
+Date      : Thu Sep  3 11:33:30 UTC 2026
 Hostname  : f89ce1f76cf8
 Username  : root
 
 ------ Disk Usage ------
 Filesystem      Size  Used Avail Use% Mounted on
-overlay         453G  3.6G  426G   1% /
+overlay         453G  8.3G  421G   2% /
 tmpfs            64M     0   64M   0% /dev
 shm              64M     0   64M   0% /dev/shm
-/dev/vda1       453G  3.6G  426G   1% /etc/hosts
+/dev/vda1       453G  8.3G  421G   2% /etc/hosts
 tmpfs           3.9G     0  3.9G   0% /proc/scsi
 tmpfs           3.9G     0  3.9G   0% /sys/firmware
 
 ------ Running Processes (top 10) ------
 USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
-root           1  0.0  0.0   2272  1216 ?        Ss   14:20   0:00 sleep infinity
-root        3679  0.0  0.0   2384  1588 pts/0    Ss+  14:23   0:00 sh -c cd /root && ./system_info.sh
-root        3680  0.0  0.0   4036  3044 pts/0    S+   14:23   0:00 /bin/bash ./system_info.sh
-root        3685  0.0  0.0   7632  3652 pts/0    R+   14:23   0:00 ps aux
-root        3686  0.0  0.0   2284  1228 pts/0    S+   14:23   0:00 head -10
+root           1  0.0  0.0   2272  1216 ?        Ss   06:00   0:00 sleep infinity
+root        3836  0.0  0.2  99552 18728 ?        S    06:03   0:04 python3 -m http.server 8000
+root        4417  0.0  0.0      0     0 ?        Zs   11:24   0:00 [sudo] <defunct>
+root        4429  0.0  0.0      0     0 ?        Zs   11:24   0:00 [sudo] <defunct>
+root        4473  0.0  0.0      0     0 ?        Zs   11:25   0:00 [sudo] <defunct>
+root        4483  0.0  0.0      0     0 ?        Zs   11:25   0:00 [sudo] <defunct>
+root        4497  0.0  0.0      0     0 ?        Zs   11:25   0:00 [sudo] <defunct>
+root        4513  0.1  0.0   4300  3656 pts/0    Ss   11:33   0:00 bash
+root        4528  0.0  0.0   4036  3044 pts/0    S+   11:33   0:00 /bin/bash ./system_info.sh
 
 Enter a directory name to create: sysinfo
 Enter a file name to create inside it: processes.txt
@@ -127,14 +131,25 @@ Running process list saved to sysinfo/processes.txt
 
 ------ First 5 lines of sysinfo/processes.txt ------
 USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
-root           1  0.0  0.0   2272  1216 ?        Ss   14:20   0:00 sleep infinity
-root        3673  0.0  0.0   2296  1572 ?        Ss   14:23   0:00 script -qec cd /root && ./system_info.sh
-root        3679  0.0  0.0   2384  1588 pts/0    Ss+  14:23   0:00 sh -c cd /root && ./system_info.sh
-root        3680  0.0  0.0   4036  3048 pts/0    S+   14:23   0:00 /bin/bash ./system_info.sh
+root           1  0.0  0.0   2272  1216 ?        Ss   06:00   0:00 sleep infinity
+root        3836  0.0  0.2  99552 18728 ?        S    06:03   0:04 python3 -m http.server 8000
+root        4417  0.0  0.0      0     0 ?        Zs   11:24   0:00 [sudo] <defunct>
+root        4429  0.0  0.0      0     0 ?        Zs   11:24   0:00 [sudo] <defunct>
 
-Line count in file: 6
+Line count in file: 11
 Script finished.
 ```
+
+Two things in that process list worth explaining, since they are visible in the screenshot:
+
+`python3 -m http.server 8000` is the little web server I had left running from the networking task,
+which is a good reminder that `ps aux` shows the true state of the machine, not just my script.
+
+The `[sudo] <defunct>` entries with `Zs` state are zombie processes, left behind by the `sudo` calls
+from the earlier user management task. A process becomes a zombie when it has exited but its parent
+has not collected the exit status. Here the parent is PID 1, which is `sleep infinity` rather than a
+real init system, and `sleep` never reaps children. On a normal machine systemd would clear these
+immediately. They use no CPU or memory, which is why VSZ and RSS are both 0.
 
 ![script run](screenshots/script-run.png)
 
@@ -156,4 +171,4 @@ which is why `processes.txt` holds only the process list from that one run.
 **`mkdir -p` does not fail if the directory exists**, which makes the script safe to run twice.
 
 **Why the line count is small.** `ps aux` inside a container only sees the processes in that
-container's PID namespace, so the file has 6 lines. On a normal VM this would be a few hundred.
+container's PID namespace, so the file has 11 lines. On a normal VM this would be a few hundred.

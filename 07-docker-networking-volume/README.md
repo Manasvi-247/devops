@@ -38,12 +38,14 @@ NETWORK ID     NAME           DRIVER    SCOPE
 05b3f65c7412   bridge         bridge    local
 c2aea29c9f6d   db-net         bridge    local
 a48743a97e24   frontend-net   bridge    local
+1b8fc558b1b0   hld_default    bridge    local
 59d40ea94b17   host           host      local
 f9527586eaac   none           null      local
 ```
 
 The three I made are `bridge` driver. `bridge`, `host` and `none` are the defaults docker ships
-with.
+with, and `hld_default` is left over from a docker compose project of mine, which is worth knowing:
+compose auto creates a network named after the project directory.
 
 ### Starting the containers
 
@@ -93,24 +95,18 @@ Backend to database, both on `db-net`:
 ```
 $ docker exec backend ping -c 3 database
 PING database (172.21.0.2): 56 data bytes
-64 bytes from 172.21.0.2: seq=0 ttl=64 time=0.316 ms
-64 bytes from 172.21.0.2: seq=1 ttl=64 time=0.252 ms
-64 bytes from 172.21.0.2: seq=2 ttl=64 time=0.384 ms
+64 bytes from 172.21.0.2: seq=0 ttl=64 time=1.758 ms
+64 bytes from 172.21.0.2: seq=1 ttl=64 time=0.248 ms
+64 bytes from 172.21.0.2: seq=2 ttl=64 time=0.117 ms
 
 --- database ping statistics ---
 3 packets transmitted, 3 packets received, 0% packet loss
+round-trip min/avg/max = 0.117/0.707/1.758 ms
 ```
 
-Works, and by container name. That is docker's embedded DNS at `127.0.0.11`:
-
-```
-$ docker exec backend nslookup database
-Address:	127.0.0.11#53
-
-Non-authoritative answer:
-Name:	database
-Address: 172.21.0.2
-```
+Works, and by container name rather than IP. That name came from docker's embedded DNS server, which
+every container on a user defined network reaches at `127.0.0.11`. Sub millisecond round trips,
+because this never leaves the host.
 
 Backend to frontend, different networks:
 
@@ -171,6 +167,8 @@ keeping in the write-up because "connection failed" does not always mean the net
 
 ![connectivity checks](screenshots/connectivity-checks.png)
 
+![mysql query over db-net](screenshots/connectivity-checks-mysql.png)
+
 ### Summary of what is reachable
 
 | From | To | Same network? | Result |
@@ -201,8 +199,8 @@ docker run -d --name apache-host --network host httpd:2.4
 
 ```
 $ docker ps --filter name=apache-host --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-NAMES         IMAGE       STATUS         PORTS
-apache-host   httpd:2.4   Up 4 seconds
+NAMES         IMAGE       STATUS        PORTS
+apache-host   httpd:2.4   Up 22 hours
 
 $ docker inspect apache-host --format '{{.HostConfig.NetworkMode}}'
 host
@@ -215,10 +213,13 @@ Apache started fine:
 
 ```
 $ docker logs apache-host | tail -3
-AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 192.168.65.3
 [Wed Sep 02 14:33:54.924223 2026] [mpm_event:notice] [pid 1:tid 1] AH00489: Apache/2.4.68 (Unix) configured -- resuming normal operations
 [Wed Sep 02 14:33:54.924449 2026] [core:notice] [pid 1:tid 1] AH00094: Command line: 'httpd -D FOREGROUND'
+::1 - - [02/Sep/2026:14:34:10 +0000] "GET / HTTP/1.1" 200 191
 ```
+
+That last line is Apache's own access log recording the request I made from inside the host
+namespace, answered `200` with 191 bytes.
 
 ### One honest caveat about macOS
 
@@ -237,21 +238,29 @@ namespace:
 ```
 $ docker run --rm --network host alpine sh -c 'apk add -q curl && curl -s -i http://localhost:80'
 HTTP/1.1 200 OK
-Date: Wed, 02 Sep 2026 14:34:10 GMT
+Date: Thu, 03 Sep 2026 12:18:42 GMT
 Server: Apache/2.4.68 (Unix)
 Last-Modified: Fri, 07 Nov 2025 08:23:08 GMT
+ETag: "bf-642fce432f300"
+Accept-Ranges: bytes
 Content-Length: 191
 Content-Type: text/html
 
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-
-$ docker run --rm --network host alpine sh -c 'netstat -tuln | grep ":80 "'
-tcp        0      0 :::80                   :::*                    LISTEN
+<html>
+<head>
+<title>It works! Apache httpd</title>
+</head>
+<body>
+<p>It works!</p>
+</body>
+</html>
 ```
 
-`HTTP/1.1 200 OK` from Apache and port 80 in `LISTEN` state on the host network. On a native Linux
-host, or with Docker Desktop's host networking option enabled, `curl http://localhost:80` from the
-terminal would return the same page directly.
+`HTTP/1.1 200 OK` and Apache's default "It works!" page, fetched over `localhost:80` with no `-p`
+mapping anywhere, which is the whole point of the host driver. On a native Linux host, or with
+Docker Desktop's host networking option enabled, `curl http://localhost:80` from the terminal would
+return the same page directly.
 
 ![host network](screenshots/host-network.png)
 
@@ -302,21 +311,42 @@ $ curl -s http://localhost:8090
 
 ### Editing the file without touching the container
 
-I changed the heading on my Mac and did **not** restart anything:
-
-```
-$ docker ps --filter name=nginx-bind --format "table {{.Names}}\t{{.Status}}"
-NAMES        STATUS
-nginx-bind   Up 3 seconds
-
-$ curl -s http://localhost:8090
-...
-      <h1>Hello <em>students</em>, edited live</h1>
-```
-
-Same container, same uptime, new content. That is the behaviour the task asked me to verify.
+I changed the heading on my Mac and did **not** restart anything. The page updated on the next
+reload:
 
 ![bind mount after the edit](screenshots/bind-mount-after.png)
+
+Then I did the same thing in reverse from the terminal, to have the whole loop in one place. The
+file said "Hello students, edited live" at this point, and I used `sed` to strip that suffix back
+off:
+
+```
+$ cat 07-docker-networking-volume/bind-mount-demo/index.html | grep "<h1>"
+      <h1>Hello <em>students</em>, edited live</h1>
+
+$ docker inspect nginx-bind --format '{{range .Mounts}}{{.Type}} {{.Source}} -> {{.Destination}} (ro={{not .RW}}){{end}}'
+bind /Users/manasvi/Desktop/devops/07-docker-networking-volume/bind-mount-demo -> /usr/share/nginx/html (ro=true)
+
+$ curl -s http://localhost:8090 | grep "<h1>"
+      <h1>Hello <em>students</em>, edited live</h1>
+
+$ sed -i '' 's|, edited live||' 07-docker-networking-volume/bind-mount-demo/index.html
+
+$ curl -s http://localhost:8090 | grep "<h1>"
+      <h1>Hello <em>students</em></h1>
+
+$ docker ps --filter name=nginx-bind --format "table {{.Names}}\t{{.Status}}"
+NAMES        STATUS
+nginx-bind   Up 22 hours
+```
+
+Read the two `curl` results either side of the `sed`: different content, no rebuild, no
+`docker restart`, no `docker cp`. And `Up 22 hours` is the proof, since the uptime never resets. If
+this had been a `COPY` in a Dockerfile instead of a bind mount, that same change would have meant
+rebuilding the image and recreating the container.
+
+The `:ro` flag is worth noting here too. Nginx only ever reads these files, so read only costs
+nothing and means a compromised container cannot write into my project folder.
 
 ![bind mount terminal](screenshots/bind-mount-terminal.png)
 

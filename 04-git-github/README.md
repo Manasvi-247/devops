@@ -27,7 +27,7 @@ new file git has never seen still needs an explicit `git add`.
 mkdir git-demo && cd git-demo
 git init -b main
 git config user.name "Manasvi"
-git config user.email "manasvi@example.com"
+git config user.email "manasvi.sabbarwal@gmail.com"
 
 echo "line 1" > notes.txt
 git add notes.txt
@@ -76,7 +76,7 @@ Now the same situation with `-a -m`:
 
 ```
 $ git commit -a -m "second commit: -a -m picks up modified tracked file"
-[main 83aabad] second commit: -a -m picks up modified tracked file
+[main e2b60ca] second commit: -a -m picks up modified tracked file
  1 file changed, 1 insertion(+)
 exit code: 0
 ```
@@ -88,8 +88,8 @@ $ git status --short
 ?? extra.txt
 
 $ git log --oneline
-83aabad second commit: -a -m picks up modified tracked file
-1d93ba2 first commit: add notes.txt
+e2b60ca second commit: -a -m picks up modified tracked file
+5cc908a first commit: add notes.txt
 ```
 
 `notes.txt` got committed, `extra.txt` is still sitting there untracked. That is the whole lesson in
@@ -132,10 +132,10 @@ git log --oneline
 
 ```
 $ git log --oneline
-a9b94f2 main: add b.txt
-89de5ad main: add a.txt
-83aabad second commit: -a -m picks up modified tracked file
-1d93ba2 first commit: add notes.txt
+b686fbf main: add b.txt
+195be4e main: add a.txt
+e2b60ca second commit: -a -m picks up modified tracked file
+5cc908a first commit: add notes.txt
 ```
 
 New branch with three commits:
@@ -149,18 +149,18 @@ echo "feature: hotfix for login bug" > hotfix.txt && git add . && git commit -m 
 
 ```
 $ git log --oneline
-3054ecc feature: hotfix for login bug
-cc67f3f feature: add footer
-e9992af feature: add navbar
-a9b94f2 main: add b.txt
-89de5ad main: add a.txt
+c3df236 feature: hotfix for login bug
+8dc548b feature: add footer
+d5da4a9 feature: add navbar
+b686fbf main: add b.txt
+195be4e main: add a.txt
 ```
 
-The commit I want on main is the hotfix, `3054ecc`. Only that one, not the navbar or footer work:
+The commit I want on main is the hotfix, `c3df236`. Only that one, not the navbar or footer work:
 
 ```
-$ git show --stat --oneline 3054ecc
-3054ecc feature: hotfix for login bug
+$ git show --stat --oneline c3df236
+c3df236 feature: hotfix for login bug
  hotfix.txt | 1 +
  1 file changed, 1 insertion(+)
 ```
@@ -174,9 +174,9 @@ a.txt
 b.txt
 notes.txt
 
-$ git cherry-pick 3054ecc
-[main b12d23b] feature: hotfix for login bug
- Date: Wed Sep 2 14:24:36 2026 +0000
+$ git cherry-pick c3df236
+[main a5a9e7a] feature: hotfix for login bug
+ Date: Thu Sep 3 12:08:59 2026 +0000
  1 file changed, 1 insertion(+)
  create mode 100644 hotfix.txt
 ```
@@ -194,11 +194,11 @@ $ cat hotfix.txt
 feature: hotfix for login bug
 
 $ git log --oneline
-b12d23b feature: hotfix for login bug
-a9b94f2 main: add b.txt
-89de5ad main: add a.txt
-83aabad second commit: -a -m picks up modified tracked file
-1d93ba2 first commit: add notes.txt
+a5a9e7a feature: hotfix for login bug
+b686fbf main: add b.txt
+195be4e main: add a.txt
+e2b60ca second commit: -a -m picks up modified tracked file
+5cc908a first commit: add notes.txt
 ```
 
 `hotfix.txt` is on main now, and `navbar.txt` and `footer.txt` are not, which is exactly what I
@@ -206,18 +206,18 @@ wanted. The branch graph makes it clearest:
 
 ```
 $ git log --oneline --graph --all
-* 3054ecc feature: hotfix for login bug
-* cc67f3f feature: add footer
-* e9992af feature: add navbar
-| * b12d23b feature: hotfix for login bug
+* c3df236 feature: hotfix for login bug
+* 8dc548b feature: add footer
+* d5da4a9 feature: add navbar
+| * a5a9e7a feature: hotfix for login bug
 |/
-* a9b94f2 main: add b.txt
-* 89de5ad main: add a.txt
-* 83aabad second commit: -a -m picks up modified tracked file
-* 1d93ba2 first commit: add notes.txt
+* b686fbf main: add b.txt
+* 195be4e main: add a.txt
+* e2b60ca second commit: -a -m picks up modified tracked file
+* 5cc908a first commit: add notes.txt
 ```
 
-The important detail: on feature the commit is `3054ecc`, on main the same change is `b12d23b`. Same
+The important detail: on feature the commit is `c3df236`, on main the same change is `a5a9e7a`. Same
 message, same diff, different hash, because a commit hash includes its parent and its timestamp. So
 cherry-pick genuinely creates a new commit rather than moving the old one.
 

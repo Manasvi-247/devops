@@ -69,8 +69,6 @@ The required text is displayed, the container is running, and it is on port 8080
 
 ![course repo app](screenshots/course-repo-app.png)
 
-![course repo terminal](screenshots/course-repo-terminal.png)
-
 ---
 
 ## Task 2: documentation and evidence
@@ -124,7 +122,25 @@ $ docker logs my-multistage-app
 > node server.js
 
 Multi-stage app listening on port 3000
+npm error path /app
+npm error command failed
+npm error signal SIGTERM
+npm error command sh -c node server.js
+npm error A complete log of this run can be found in: /root/.npm/_logs/2026-09-02T14_37_21_388Z-debug-0.log
+
+> multi-stage-hello@1.0.0 start
+> node server.js
+
+Multi-stage app listening on port 3000
 ```
+
+The `SIGTERM` block in the middle is not a crash. I stopped this container to free port 8080 while
+capturing the course repo version, then started it again, so the log holds the whole story: first
+start, `docker stop` sending SIGTERM, npm reporting that its child exited on a signal, then the
+second start. Worth reading carefully, because `npm error` looks alarming in a log when all that
+actually happened is a clean shutdown. It is also a small argument for `CMD ["node", "server.js"]`
+over `CMD ["npm", "start"]`, since npm sits in the middle as PID 1 and turns a normal stop into an
+error message.
 
 ![app on port 8080](screenshots/app-on-8080.png)
 
@@ -133,7 +149,7 @@ Multi-stage app listening on port 3000
 ```
 $ docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
 NAMES               IMAGE               STATUS          PORTS
-my-multistage-app   my-multistage:1.0   Up 4 seconds    0.0.0.0:8080->3000/tcp, [::]:8080->3000/tcp
+my-multistage-app   my-multistage:1.0   Up 2 minutes    0.0.0.0:8080->3000/tcp, [::]:8080->3000/tcp
 ```
 
 ![docker ps on 8080](screenshots/docker-ps-8080.png)

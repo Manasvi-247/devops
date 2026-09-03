@@ -234,17 +234,22 @@ Last 10 lines of the journal:
 
 ```
 $ journalctl -n 10 --no-pager
-Sep 02 14:22:22 6948b008ba74 systemd[1]: Finished e2scrub_reap.service - Remove Stale Online ext4 Metadata Check Snapshots.
-Sep 02 14:22:22 6948b008ba74 systemd-logind[81]: New seat seat0.
-Sep 02 14:22:22 6948b008ba74 systemd[1]: Started systemd-logind.service - User Login Management.
-Sep 02 14:22:22 6948b008ba74 systemd[1]: Reached target multi-user.target - Multi-User System.
-Sep 02 14:22:22 6948b008ba74 systemd[1]: Reached target graphical.target - Graphical Interface.
-Sep 02 14:22:22 6948b008ba74 systemd[1]: Starting systemd-update-utmp-runlevel.service - Record Runlevel Change in UTMP...
-Sep 02 14:22:22 6948b008ba74 systemd[1]: systemd-update-utmp-runlevel.service: Deactivated successfully.
-Sep 02 14:22:22 6948b008ba74 systemd[1]: Finished systemd-update-utmp-runlevel.service - Record Runlevel Change in UTMP.
-Sep 02 14:22:22 6948b008ba74 systemd[1]: Startup finished in 111ms.
-Sep 02 14:22:30 6948b008ba74 systemd-resolved[72]: Clock change detected. Flushing caches.
+Sep 03 11:24:30 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:25:00 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:25:30 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:26:00 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:26:30 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:27:00 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:27:30 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:28:00 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:28:30 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:29:00 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
 ```
+
+Every 30 seconds, the same "Clock change detected" line from `systemd-resolved`. That is a
+virtualisation artefact: the machine's clock keeps being nudged, and resolved flushes its DNS cache
+each time it notices. Not an error, just noisy. It is a decent example of why filtering by unit and
+priority matters, because reading the raw journal here tells me almost nothing.
 
 ### Checking logs for one specific service
 
@@ -253,27 +258,33 @@ unit's logs:
 
 ```
 $ journalctl -u systemd-resolved --no-pager | tail -8
-Sep 02 14:22:22 6948b008ba74 systemd[1]: Starting systemd-resolved.service - Network Name Resolution...
-Sep 02 14:22:22 6948b008ba74 systemd-resolved[72]: Positive Trust Anchors:
-Sep 02 14:22:22 6948b008ba74 systemd-resolved[72]: . IN DS 20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
-Sep 02 14:22:22 6948b008ba74 systemd-resolved[72]: Using system hostname '6948b008ba74'.
-Sep 02 14:22:22 6948b008ba74 systemd[1]: Started systemd-resolved.service - Network Name Resolution.
-Sep 02 14:22:30 6948b008ba74 systemd-resolved[72]: Clock change detected. Flushing caches.
+Sep 03 11:25:30 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:26:00 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:26:30 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:27:00 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:27:30 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:28:00 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:28:30 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
+Sep 03 11:29:00 6948b008ba74 systemd-resolved[120]: Clock change detected. Flushing caches.
 
 $ systemctl restart systemd-resolved
 
 $ journalctl -u systemd-resolved --since "5 min ago" --no-pager | tail -10
-Sep 02 14:22:49 6948b008ba74 systemd[1]: Stopping systemd-resolved.service - Network Name Resolution...
-Sep 02 14:22:49 6948b008ba74 systemd[1]: systemd-resolved.service: Deactivated successfully.
-Sep 02 14:22:49 6948b008ba74 systemd[1]: Stopped systemd-resolved.service - Network Name Resolution.
-Sep 02 14:22:49 6948b008ba74 systemd[1]: Starting systemd-resolved.service - Network Name Resolution...
-Sep 02 14:22:49 6948b008ba74 systemd-resolved[120]: Positive Trust Anchors:
-Sep 02 14:22:49 6948b008ba74 systemd-resolved[120]: Using system hostname '6948b008ba74'.
-Sep 02 14:22:49 6948b008ba74 systemd[1]: Started systemd-resolved.service - Network Name Resolution.
+Sep 03 11:29:11 6948b008ba74 systemd[1]: Stopping systemd-resolved.service - Network Name Resolution...
+Sep 03 11:29:12 6948b008ba74 systemd[1]: systemd-resolved.service: Deactivated successfully.
+Sep 03 11:29:12 6948b008ba74 systemd[1]: Stopped systemd-resolved.service - Network Name Resolution.
+Sep 03 11:29:12 6948b008ba74 systemd[1]: systemd-resolved.service: Consumed 1.078s CPU time.
+Sep 03 11:29:12 6948b008ba74 systemd[1]: Starting systemd-resolved.service - Network Name Resolution...
+Sep 03 11:29:12 6948b008ba74 systemd-resolved[334]: Positive Trust Anchors:
+Sep 03 11:29:12 6948b008ba74 systemd-resolved[334]: . IN DS 20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+Sep 03 11:29:12 6948b008ba74 systemd-resolved[334]: Using system hostname '6948b008ba74'.
+Sep 03 11:29:12 6948b008ba74 systemd[1]: Started systemd-resolved.service - Network Name Resolution.
 ```
 
-You can see the stop and start pair for exactly that unit, and the PID changing from 72 to 120,
-which is a nice confirmation the restart actually happened.
+This is the useful part. Filtering by unit cuts all the noise and shows the full stop then start
+sequence for that one service, and the PID changes from **120 to 334**, which proves the restart
+actually happened rather than systemd deciding nothing needed doing. `Consumed 1.078s CPU time` is
+systemd reporting what the old process used before it went away.
 
 Two more:
 
@@ -285,7 +296,10 @@ $ journalctl --disk-usage
 Archived and active journals take up 8.0M in the file system.
 ```
 
-No error level entries, which is the answer you want to see when you are checking a healthy box.
+`-- No entries --` for `-p err` means there is nothing at error priority or worse, which is the
+answer you want when checking a healthy box. Worth not confusing it with
+`No journal files were found`, which is a different thing entirely and means journald was never
+running to collect anything.
 
 ![journalctl](screenshots/journalctl.png)
 

@@ -54,26 +54,53 @@ docker run -d --name nginx-hello  -p 8083:80   nginx-hello:1.0
 ## All six running
 
 ```
+$ docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep hello
+react-hello:1.0     76.1MB
+nginx-hello:1.0     75.9MB
+apache-hello:1.0    105MB
+java-hello:1.0      744MB
+python-hello:1.0    234MB
+nodejs-hello:1.0    209MB
+
 $ docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
 NAMES          IMAGE              STATUS         PORTS
-react-hello    react-hello:1.0    Up 6 seconds   0.0.0.0:8082->80/tcp, [::]:8082->80/tcp
-nginx-hello    nginx-hello:1.0    Up 6 seconds   0.0.0.0:8083->80/tcp, [::]:8083->80/tcp
-apache-hello   apache-hello:1.0   Up 6 seconds   0.0.0.0:8081->80/tcp, [::]:8081->80/tcp
-java-hello     java-hello:1.0     Up 6 seconds   0.0.0.0:8085->8080/tcp, [::]:8085->8080/tcp
-python-hello   python-hello:1.0   Up 6 seconds   0.0.0.0:5001->5000/tcp, [::]:5001->5000/tcp
-node-hello     nodejs-hello:1.0   Up 6 seconds   0.0.0.0:3001->3000/tcp, [::]:3001->3000/tcp
+react-hello    react-hello:1.0    Up 22 hours    0.0.0.0:8082->80/tcp, [::]:8082->80/tcp
+nginx-hello    nginx-hello:1.0    Up 22 hours    0.0.0.0:8083->80/tcp, [::]:8083->80/tcp
+apache-hello   apache-hello:1.0   Up 22 hours    0.0.0.0:8081->80/tcp, [::]:8081->80/tcp
+java-hello     java-hello:1.0     Up 22 hours    0.0.0.0:8085->8080/tcp, [::]:8085->8080/tcp
+python-hello   python-hello:1.0   Up 22 hours    0.0.0.0:5001->5000/tcp, [::]:5001->5000/tcp
+node-hello     nodejs-hello:1.0   Up 22 hours    0.0.0.0:3001->3000/tcp, [::]:3001->3000/tcp
 ```
 
 Every one answered with 200:
 
 ```
-$ curl -s -o /dev/null -w '%{http_code}' http://localhost:3001  ->  200  (nodejs)
-$ curl -s -o /dev/null -w '%{http_code}' http://localhost:5001  ->  200  (python)
-$ curl -s -o /dev/null -w '%{http_code}' http://localhost:8085  ->  200  (java)
-$ curl -s -o /dev/null -w '%{http_code}' http://localhost:8081  ->  200  (apache)
-$ curl -s -o /dev/null -w '%{http_code}' http://localhost:8083  ->  200  (nginx)
-$ curl -s -o /dev/null -w '%{http_code}' http://localhost:8082  ->  200  (react)
+$ for p in 3001 5001 8085 8081 8083 8082; do echo "port $p -> $(curl -s -o /dev/null -w '%{http_code}' http://localhost:$p)"; done
+port 3001 -> 200
+port 5001 -> 200
+port 8085 -> 200
+port 8081 -> 200
+port 8083 -> 200
+port 8082 -> 200
 ```
+
+`Up 22 hours` because I left them running overnight while writing this up, which is its own small
+point: containers keep running until you stop them.
+
+The size column is the interesting part:
+
+| Image | Size | Why |
+|---|---|---|
+| `nginx-hello:1.0` | 75.9MB | alpine plus one html file |
+| `react-hello:1.0` | 76.1MB | same alpine nginx, plus the built `dist` |
+| `apache-hello:1.0` | 105MB | httpd alpine |
+| `nodejs-hello:1.0` | 209MB | node alpine plus express |
+| `python-hello:1.0` | 234MB | python slim plus flask |
+| `java-hello:1.0` | 744MB | full JDK, and the JDK is the whole cost |
+
+React shipping at nearly the same size as plain nginx is the multi-stage build paying off, since
+node and `node_modules` were left behind in the builder stage. Java at 744MB is the opposite case
+and the obvious thing to fix, by compiling in a JDK stage and running the class on a JRE base.
 
 ![images and containers](screenshots/images-and-containers.png)
 
